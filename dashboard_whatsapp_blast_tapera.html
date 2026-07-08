@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard KPI WhatsApp Blast - BP Tapera</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+    <style>
+        :root {
+            --primary: #1a56db;
+            --primary-dark: #1e429f;
+            --success: #059669;
+            --success-light: #d1fae5;
+            --danger: #dc2626;
+            --danger-light: #fee2e2;
+            --warning: #d97706;
+            --warning-light: #fef3c7;
+            --info: #0891b2;
+            --info-light: #cffafe;
+            --bg: #f3f4f6;
+            --card-bg: #ffffff;
+            --text: #111827;
+            --text-muted: #6b7280;
+            --border: #e5e7eb;
+            --shadow: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -1px rgba(0,0,0,0.06);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -2px rgba(0,0,0,0.05);
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: var(--bg);
+            color: var(--text);
+            line-height: 1.6;
+        }
+        .container { max-width: 1400px; margin: 0 auto; padding: 24px; }
+        header {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--primary-dark) 100%);
+            color: white;
+            padding: 32px 24px;
+            border-radius: 16px;
+            margin-bottom: 24px;
+            box-shadow: var(--shadow-lg);
+        }
+        header h1 { font-size: 1.8rem; font-weight: 700; margin-bottom: 4px; }
+        header p { opacity: 0.9; font-size: 0.95rem; }
+        .header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 16px;
+        }
+        .filter-bar {
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+        .btn {
+            padding: 8px 18px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 0.85rem;
+            font-weight: 600;
+            transition: all 0.2s;
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+        }
+        .btn-filter {
+            background: white;
+            color: var(--primary);
+            border: 1px solid var(--primary);
+        }
+        .btn-filter:hover, .btn-filter.active {
+            background: var(--primary);
+            color: white;
+        }
+        .btn-export {
+            background: var(--success);
+            color: white;
+        }
+        .btn-export:hover { background: #047857; }
+        .section { margin-bottom: 24px; }
+        .section-title {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin-bottom: 16px;
+            color: var(--text);
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        .kpi-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 16px;
+        }
+        .kpi-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            border-left: 4px solid var(--primary);
+            transition: transform 0.2s;
+        }
+        .kpi-card:hover { transform: translateY(-2px); }
+        .kpi-card.success { border-left-color: var(--success); }
+        .kpi-card.danger { border-left-color: var(--danger); }
+        .kpi-card.warning { border-left-color: var(--warning); }
+        .kpi-card.info { border-left-color: var(--info); }
+        .kpi-label {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 4px;
+            font-weight: 600;
+        }
+        .kpi-value {
+            font-size: 1.8rem;
+            font-weight: 800;
+            color: var(--text);
+            margin-bottom: 4px;
+        }
+        .kpi-change {
+            font-size: 0.8rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+        .kpi-change.up { color: var(--success); }
+        .kpi-change.down { color: var(--danger); }
+        .kpi-change.neutral { color: var(--text-muted); }
+        .chart-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(400px, 1fr));
+            gap: 20px;
+        }
+        .chart-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+        }
+        .chart-container { position: relative; height: 300px; }
+        .chart-container.pie { height: 280px; }
+        .insights {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: var(--shadow);
+        }
+        .insight-list {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 16px;
+            margin-top: 12px;
+        }
+        .insight-item {
+            display: flex;
+            gap: 12px;
+            padding: 14px;
+            border-radius: 10px;
+            background: var(--bg);
+        }
+        .insight-icon {
+            width: 40px;
+            height: 40px;
+            border-radius: 10px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.3rem;
+            flex-shrink: 0;
+        }
+        .insight-icon.gold { background: #fef3c7; }
+        .insight-icon.red { background: #fee2e2; }
+        .insight-icon.green { background: #d1fae5; }
+        .insight-icon.blue { background: #cffafe; }
+        .insight-icon.purple { background: #ede9fe; }
+        .insight-text h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 2px; }
+        .insight-text p { font-size: 0.85rem; color: var(--text-muted); }
+        .badge {
+            display: inline-block;
+            padding: 2px 10px;
+            border-radius: 20px;
+            font-size: 0.75rem;
+            font-weight: 700;
+            margin-left: 6px;
+        }
+        .badge-success { background: var(--success-light); color: var(--success); }
+        .badge-danger { background: var(--danger-light); color: var(--danger); }
+        .badge-warning { background: var(--warning-light); color: var(--warning); }
+        .table-card {
+            background: var(--card-bg);
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: var(--shadow);
+            overflow-x: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.9rem;
+        }
+        th, td {
+            padding: 10px 12px;
+            text-align: left;
+            border-bottom: 1px solid var(--border);
+        }
+        th {
+            background: var(--bg);
+            font-weight: 700;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            font-size: 0.75rem;
+            letter-spacing: 0.5px;
+        }
+        tr:hover td { background: #f9fafb; }
+        .progress-bar {
+            height: 8px;
+            border-radius: 4px;
+            background: var(--bg);
+            overflow: hidden;
+        }
+        .progress-fill {
+            height: 100%;
+            border-radius: 4px;
+            transition: width 0.5s ease;
+        }
+        .progress-fill.success { background: var(--success); }
+        .progress-fill.danger { background: var(--danger); }
+        .progress-fill.warning { background: var(--warning); }
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+            margin-right: 6px;
+        }
+        .status-dot.success { background: var(--success); }
+        .status-dot.danger { background: var(--danger); }
+        .status-dot.warning { background: var(--warning); }
+        .month-detail {
+            display: none;
+            animation: fadeIn 0.3s ease;
+        }
+        .month-detail.active { display: block; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .trend-arrow { font-size: 1rem; }
+        .kpi-sub { font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; }
+        @media (max-width: 768px) {
+            .chart-grid { grid-template-columns: 1fr; }
+            .kpi-grid { grid-template-columns: 1fr 1fr; }
+            header h1 { font-size: 1.3rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-row">
+                <div>
+                    <h1>📊 Dashboard KPI WhatsApp Blast</h1>
+                    <p>BP Tapera | Periode: Januari - Juni 2026</p>
+                </div>
+                <div class="filter-bar">
+                    <button class="btn btn-filter active" onclick="filterMonth('all')">Semua</button>
+                    <button class="btn btn-filter" onclick="filterMonth('jan')">Jan</button>
+                    <button class="btn btn-filter" onclick="filterMonth('feb')">Feb</button>
+                    <button class="btn btn-filter" onclick="filterMonth('mar')">Mar</button>
+                    <button class="btn btn-filter" onclick="filterMonth('apr')">Apr</button>
+                    <button class="btn btn-filter" onclick="filterMonth('may')">May</button>
+                    <button class="btn btn-filter" onclick="filterMonth('jun')">Jun</button>
+                    <button class="btn btn-export" onclick="exportCSV()">📥 Export CSV</button>
+                </div>
+            </div>
+        </header>
+
+        <div id="view-all">
+            <div class="section">
+                <div class="kpi-grid">
+                    <div class="kpi-card info">
+                        <div class="kpi-label">📨 Total Messages</div>
+                        <div class="kpi-value" id="kpi-total">40,196</div>
+                        <div class="kpi-sub">Jan - Jun 2026</div>
+                    </div>
+                    <div class="kpi-card success">
+                        <div class="kpi-label">✅ Success</div>
+                        <div class="kpi-value" id="kpi-success">30,969</div>
+                        <div class="kpi-change up"><span class="trend-arrow">↑</span> 77.04% Rate</div>
+                    </div>
+                    <div class="kpi-card danger">
+                        <div class="kpi-label">❌ Failed</div>
+                        <div class="kpi-value" id="kpi-failed">9,227</div>
+                        <div class="kpi-change down"><span class="trend-arrow">↓</span> 22.96% Rate</div>
+                    </div>
+                    <div class="kpi-card success">
+                        <div class="kpi-label">📈 Success Rate</div>
+                        <div class="kpi-value" id="kpi-srate">77.04%</div>
+                        <div class="kpi-change down">Target: ≥80%</div>
+                    </div>
+                    <div class="kpi-card danger">
+                        <div class="kpi-label">📉 Failed Rate</div>
+                        <div class="kpi-value" id="kpi-frate">22.96%</div>
+                        <div class="kpi-change up">Target: ≤20%</div>
+                    </div>
+                    <div class="kpi-card warning">
+                        <div class="kpi-label">📊 Average / Bulan</div>
+                        <div class="kpi-value" id="kpi-avg">6,699</div>
+                        <div class="kpi-sub">Total 6 bulan</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="chart-grid">
+                    <div class="chart-card">
+                        <div class="section-title">📅 Monthly Performance Trend</div>
+                        <div class="chart-container">
+                            <canvas id="trendChart"></canvas>
+                        </div>
+                    </div>
+                    <div class="chart-card">
+                        <div class="section-title">⚠️ Error Breakdown (Failed Messages)</div>
+                        <div class="chart-container pie">
+                            <canvas id="errorChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="chart-card">
+                    <div class="section-title">📋 Monthly Detail</div>
+                    <div class="table-card" style="padding:0; box-shadow:none;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Bulan</th>
+                                    <th>Total Messages</th>
+                                    <th>Success</th>
+                                    <th>Failed</th>
+                                    <th>Success Rate</th>
+                                    <th>Failed Rate</th>
+                                    <th>Status</th>
+                                </tr>
+                            </thead>
+                            <tbody id="monthlyTable">
+                                <tr>
+                                    <td><strong>Januari</strong></td>
+                                    <td>13,246</td>
+                                    <td>9,959</td>
+                                    <td>3,287</td>
+                                    <td>
+                                        <div style="display:flex;align-items:center;gap:8px">
+                                            <span>75.18%</span>
+                                            <div class="progress-bar" style="width:80px"><div class="progress-fill warning" style="width:75.18%"></div></div>
+                                        </div>
+                                    </td>
+                                    <td>24.82%</td>
+                                    <td><span class="status-dot danger"></span>Below Target</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Februari</strong></td>
+                                    <td>5,831</td>
+                                    <td>4,426</td>
+                                    <td>1,405</td>
+                                    <td>
+                                        <div style="display:flex;align-items:center;gap:8px">
+                                            <span>75.90%</span>
+                                            <div class="progress-bar" style="width:80px"><div class="progress-fill warning" style="width:75.90%"></div></div>
+                                        </div>
+                                    </td>
+                                    <td>24.10%</td>
+                                    <td><span class="status-dot danger"></span>Below Target</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Maret</strong></td>
+                                    <td>2,685</td>
+                                    <td>2,088</td>
+                                    <td>597</td>
+                                    <td>
+                                        <div style="display:flex;align-items:center;gap:8px">
+                                            <span>77.77%</span>
+                                            <div class="progress-bar" style="width:80px"><div class="progress-fill warning" style="width:77.77%"></div></div>
+                                        </div>
+                                    </td>
+                                    <td>22.23%</td>
+                                    <td><span class="status-dot danger"></span>Below Target</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>April</strong></td>
+                                    <td>5,812</td>
+                                    <td>4,472</td>
+                                    <td>1,340</td>
+                                    <td>
+                                        <div style="display:flex;align-items:center;gap:8px">
+                                            <span>76.94%</span>
+                                            <div class="progress-bar" style="width:80px"><div class="progress-fill warning" style="width:76.94%"></div></div>
+                                        </div>
+                                    </td>
+                                    <td>23.06%</td>
+                                    <td><span class="status-dot danger"></span>Below Target</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Mei</strong></td>
+                                    <td>6,317</td>
+                                    <td>5,542</td>
+                                    <td>775</td>
+                                    <td>
+                                        <div style="display:flex;align-items:center;gap:8px">
+                                            <span>87.73%</span>
+                                            <div class="progress-bar" style="width:80px"><div class="progress-fill success" style="width:87.73%"></div></div>
+                                        </div>
+                                    </td>
+                                    <td>12.27%</td>
+                                    <td><span class="status-dot success"></span>Achieved</td>
+                                </tr>
+                                <tr>
+                                    <td><strong>Juni</strong></td>
+                                    <td>6,305</td>
+                                    <td>4,482</td>
+                                    <td>1,823</td>
+                                    <td>
+                                        <div style="display:flex;align-items:center;gap:8px">
+                                            <span>71.09%</span>
+                                            <div class="progress-bar" style="width:80px"><div class="progress-fill danger" style="width:71.09%"></div></div>
+                                        </div>
+                                    </td>
+                                    <td>28.91%</td>
+                                    <td><span class="status-dot danger"></span>Below Target</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="chart-card">
+                    <div class="section-title">🔍 Error Detail Breakdown</div>
+                    <div class="table-card" style="padding:0; box-shadow:none;">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>Error Type</th>
+                                    <th>Count</th>
+                                    <th>% of Total Failed</th>
+                                    <th>Visual</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr>
+                                    <td><strong>131026 - Message Undeliverable</strong></td>
+                                    <td>7,735</td>
+                                    <td>83.83%</td>
+                                    <td><div class="progress-bar" style="width:120px"><div class="progress-fill danger" style="width:83.83%"></div></div></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>131049 - Ecosystem Blocked</strong></td>
+                                    <td>902</td>
+                                    <td>9.78%</td>
+                                    <td><div class="progress-bar" style="width:120px"><div class="progress-fill warning" style="width:9.78%"></div></div></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>130472 - User in Experiment</strong></td>
+                                    <td>546</td>
+                                    <td>5.92%</td>
+                                    <td><div class="progress-bar" style="width:120px"><div class="progress-fill warning" style="width:5.92%"></div></div></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>131050 - Marketing Opt-out</strong></td>
+                                    <td>35</td>
+                                    <td>0.38%</td>
+                                    <td><div class="progress-bar" style="width:120px"><div class="progress-fill success" style="width:0.38%"></div></div></td>
+                                </tr>
+                                <tr>
+                                    <td><strong>#100 - Invalid Parameter</strong></td>
+                                    <td>9</td>
+                                    <td>0.10%</td>
+                                    <td><div class="progress-bar" style="width:120px"><div class="progress-fill success" style="width:0.10%"></div></div></td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <div class="section">
+                <div class="insights">
+                    <div class="section-title">💡 Summary Analysis & Insights</div>
+                    <div class="insight-list">
+                        <div class="insight-item">
+                            <div class="insight-icon gold">🏆</div>
+                            <div class="insight-text">
+                                <h4>Best Month: Mei 2026</h4>
+                                <p>Success rate tertinggi 87.73% dengan failed rate terendah 12.27%. Bulan ini menjadi benchmark untuk strategi blast selanjutnya.</p>
+                            </div>
+                        </div>
+                        <div class="insight-item">
+                            <div class="insight-icon red">⚠️</div>
+                            <div class="insight-text">
+                                <h4>Worst Month: Juni 2026</h4>
+                                <p>Success rate terendah 71.09% dengan failed rate tertinggi 28.91%. Perlu evaluasi mendalam pada database dan konten blast.</p>
+                            </div>
+                        </div>
+                        <div class="insight-item">
+                            <div class="insight-icon green">📈</div>
+                            <div class="insight-text">
+                                <h4>Volume Tercapai</h4>
+                                <p>Total volume 40,196 messages (target ≥40,000) terpenuhi. Rata-rata 6,699 pesan per bulan.</p>
+                            </div>
+                        </div>
+                        <div class="insight-item">
+                            <div class="insight-icon blue">🔴</div>
+                            <div class="insight-text">
+                                <h4>Root Cause Utama</h4>
+                                <p>83.83% kegagalan disebabkan "Message Undeliverable" (7,735 kasus). Prioritas perbaikan: validasi nomor aktif & quality kontak.</p>
+                            </div>
+                        </div>
+                        <div class="insight-item">
+                            <div class="insight-icon purple">🎯</div>
+                            <div class="insight-text">
+                                <h4>KPI Target</h4>
+                                <p>Success rate keseluruhan 77.04% masih di bawah target ≥80%. Perlu peningkatan strategi blast untuk mencapai target.</p>
+                            </div>
+                        </div>
+                        <div class="insight-item">
+                            <div class="insight-icon green">📉</div>
+                            <div class="insight-text">
+                                <h4>Rekomendasi</h4>
+                                <p>Lakukan cleaning database, verifikasi nomor aktif, optimasi waktu kirim, dan review template untuk mengurangi failed rate.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="month-views"></div>
+    </div>
+
+    <script>
+        const data = {
+            all: { total: 40196, success: 30969, failed: 9227, srate: 77.04, frate: 22.96, avg: 6699 },
+            jan: { total: 13246, success: 9959, failed: 3287, srate: 75.18, frate: 24.82, avg: 13246, label: 'Januari' },
+            feb: { total: 5831, success: 4426, failed: 1405, srate: 75.90, frate: 24.10, avg: 5831, label: 'Februari' },
+            mar: { total: 2685, success: 2088, failed: 597, srate: 77.77, frate: 22.23, avg: 2685, label: 'Maret' },
+            apr: { total: 5812, success: 4472, failed: 1340, srate: 76.94, frate: 23.06, avg: 5812, label: 'April' },
+            may: { total: 6317, success: 5542, failed: 775, srate: 87.73, frate: 12.27, avg: 6317, label: 'Mei' },
+            jun: { total: 6305, success: 4482, failed: 1823, srate: 71.09, frate: 28.91, avg: 6305, label: 'Juni' }
+        };
+
+        const errorData = {
+            labels: ['131026 - Undeliverable', '131049 - Ecosystem Blocked', '130472 - User in Experiment', '131050 - Marketing Opt-out', '#100 - Invalid Parameter'],
+            counts: [7735, 902, 546, 35, 9],
+            colors: ['#dc2626', '#d97706', '#0891b2', '#059669', '#6b7280']
+        };
+
+        const monthlyData = {
+            labels: ['Januari', 'Februari', 'Maret', 'April', 'Mei', 'Juni'],
+            total: [13246, 5831, 2685, 5812, 6317, 6305],
+            success: [9959, 4426, 2088, 4472, 5542, 4482],
+            failed: [3287, 1405, 597, 1340, 775, 1823]
+        };
+
+        let trendChart, errorChart;
+
+        function initCharts() {
+            const ctxTrend = document.getElementById('trendChart').getContext('2d');
+            trendChart = new Chart(ctxTrend, {
+                type: 'bar',
+                data: {
+                    labels: monthlyData.labels,
+                    datasets: [
+                        {
+                            label: 'Success',
+                            data: monthlyData.success,
+                            backgroundColor: '#059669',
+                            borderRadius: 6,
+                            barPercentage: 0.6
+                        },
+                        {
+                            label: 'Failed',
+                            data: monthlyData.failed,
+                            backgroundColor: '#dc2626',
+                            borderRadius: 6,
+                            barPercentage: 0.6
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { position: 'top', labels: { usePointStyle: true, padding: 16 } },
+                        tooltip: { mode: 'index', intersect: false }
+                    },
+                    scales: {
+                        y: { beginAtZero: true, grid: { color: '#f3f4f6' }, ticks: { font: { size: 11 } } },
+                        x: { grid: { display: false }, ticks: { font: { size: 11 } } }
+                    },
+                    interaction: { mode: 'index', intersect: false }
+                }
+            });
+
+            const ctxError = document.getElementById('errorChart').getContext('2d');
+            errorChart = new Chart(ctxError, {
+                type: 'doughnut',
+                data: {
+                    labels: errorData.labels,
+                    datasets: [{
+                        data: errorData.counts,
+                        backgroundColor: errorData.colors,
+                        borderWidth: 2,
+                        borderColor: '#fff',
+                        hoverOffset: 8
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: '60%',
+                    plugins: {
+                        legend: { position: 'right', labels: { usePointStyle: true, padding: 12, font: { size: 11 } } },
+                        tooltip: {
+                            callbacks: {
+                                label: function(context) {
+                                    const total = context.dataset.data.reduce((a,b)=>a+b,0);
+                                    const pct = ((context.raw/total)*100).toFixed(2);
+                                    return ` ${context.label}: ${context.raw.toLocaleString()} (${pct}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function filterMonth(month) {
+            document.querySelectorAll('.btn-filter').forEach(b => b.classList.remove('active'));
+            event.target.classList.add('active');
+
+            const d = data[month];
+            document.getElementById('kpi-total').textContent = d.total.toLocaleString();
+            document.getElementById('kpi-success').textContent = d.success.toLocaleString();
+            document.getElementById('kpi-failed').textContent = d.failed.toLocaleString();
+            document.getElementById('kpi-srate').textContent = d.srate.toFixed(2) + '%';
+            document.getElementById('kpi-frate').textContent = d.frate.toFixed(2) + '%';
+            document.getElementById('kpi-avg').textContent = d.avg.toLocaleString();
+
+            if (month === 'all') {
+                document.getElementById('view-all').style.display = 'block';
+                if (!trendChart) initCharts();
+            } else {
+                document.getElementById('view-all').style.display = 'none';
+                showMonthDetail(month, d);
+            }
+        }
+
+        function showMonthDetail(month, d) {
+            const container = document.getElementById('month-views');
+            const idx = ['jan','feb','mar','apr','may','jun'].indexOf(month);
+            const monthLabel = monthlyData.labels[idx];
+            const targetColor = d.srate >= 80 ? 'success' : 'danger';
+            const targetText = d.srate >= 80 ? 'Achieved' : 'Below Target';
+            const statusDot = d.srate >= 80 ? 'success' : 'danger';
+
+            container.innerHTML = `
+                <div class="month-detail active">
+                    <div class="section">
+                        <div class="kpi-grid">
+                            <div class="kpi-card info">
+                                <div class="kpi-label">📨 Total Messages</div>
+                                <div class="kpi-value">${d.total.toLocaleString()}</div>
+                                <div class="kpi-sub">${d.label} 2026</div>
+                            </div>
+                            <div class="kpi-card success">
+                                <div class="kpi-label">✅ Success</div>
+                                <div class="kpi-value">${d.success.toLocaleString()}</div>
+                                <div class="kpi-change up">${d.srate.toFixed(2)}% Rate</div>
+                            </div>
+                            <div class="kpi-card danger">
+                                <div class="kpi-label">❌ Failed</div>
+                                <div class="kpi-value">${d.failed.toLocaleString()}</div>
+                                <div class="kpi-change down">${d.frate.toFixed(2)}% Rate</div>
+                            </div>
+                            <div class="kpi-card success">
+                                <div class="kpi-label">📈 Success Rate</div>
+                                <div class="kpi-value">${d.srate.toFixed(2)}%</div>
+                                <div class="kpi-change ${d.srate >= 80 ? 'up' : 'down'}">Target: ≥80%</div>
+                            </div>
+                            <div class="kpi-card danger">
+                                <div class="kpi-label">📉 Failed Rate</div>
+                                <div class="kpi-value">${d.frate.toFixed(2)}%</div>
+                                <div class="kpi-change ${d.frate <= 20 ? 'up' : 'down'}">Target: ≤20%</div>
+                            </div>
+                            <div class="kpi-card warning">
+                                <div class="kpi-label">🎯 Status Target</div>
+                                <div class="kpi-value" style="font-size:1.2rem; margin-top:8px;"><span class="badge badge-${targetColor}">${targetText}</span></div>
+                                <div class="kpi-sub">Bulan ${d.label}</div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="section">
+                        <div class="chart-card">
+                            <div class="section-title">📊 Ringkasan Bulan ${d.label}</div>
+                            <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 24px; margin-top: 12px;">
+                                <div>
+                                    <div style="font-size: 3rem; font-weight: 800; color: var(--primary); text-align: center;">${d.srate.toFixed(2)}%</div>
+                                    <div style="text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">Success Rate</div>
+                                    <div class="progress-bar" style="margin-top: 12px; height: 12px;">
+                                        <div class="progress-fill ${d.srate >= 80 ? 'success' : d.srate >= 75 ? 'warning' : 'danger'}" style="width: ${d.srate}%"></div>
+                                    </div>
+                                </div>
+                                <div>
+                                    <div style="font-size: 3rem; font-weight: 800; color: var(--danger); text-align: center;">${d.frate.toFixed(2)}%</div>
+                                    <div style="text-align: center; color: var(--text-muted); font-size: 0.9rem; margin-top: 4px;">Failed Rate</div>
+                                    <div class="progress-bar" style="margin-top: 12px; height: 12px;">
+                                        <div class="progress-fill danger" style="width: ${d.frate}%"></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+
+        function exportCSV() {
+            const csvContent = [
+                ['Dashboard KPI WhatsApp Blast BP Tapera - Periode Jan-Jun 2026'],
+                [''],
+                ['KPI Summary'],
+                ['Metric', 'Value'],
+                ['Total Messages', '40196'],
+                ['Success', '30969'],
+                ['Failed', '9227'],
+                ['Success Rate', '77.04%'],
+                ['Failed Rate', '22.96%'],
+                ['Average / Month', '6699'],
+                [''],
+                ['Monthly Performance'],
+                ['Bulan', 'Total Messages', 'Success', 'Failed', 'Success Rate', 'Failed Rate'],
+                ['Januari', '13246', '9959', '3287', '75.18%', '24.82%'],
+                ['Februari', '5831', '4426', '1405', '75.90%', '24.10%'],
+                ['Maret', '2685', '2088', '597', '77.77%', '22.23%'],
+                ['April', '5812', '4472', '1340', '76.94%', '23.06%'],
+                ['Mei', '6317', '5542', '775', '87.73%', '12.27%'],
+                ['Juni', '6305', '4482', '1823', '71.09%', '28.91%'],
+                [''],
+                ['Error Breakdown'],
+                ['Error Type', 'Count', '% of Total Failed'],
+                ['131026 - Message Undeliverable', '7735', '83.83%'],
+                ['131049 - Ecosystem Blocked', '902', '9.78%'],
+                ['130472 - User in Experiment', '546', '5.92%'],
+                ['131050 - Marketing Opt-out', '35', '0.38%'],
+                ['#100 - Invalid Parameter', '9', '0.10%']
+            ].map(row => row.join(',')).join('\n');
+
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = 'KPI_WhatsApp_Blast_Tapera_Jan-Jun_2026.csv';
+            link.click();
+            URL.revokeObjectURL(link.href);
+        }
+
+        window.addEventListener('load', initCharts);
+    </script>
+</body>
+</html>
