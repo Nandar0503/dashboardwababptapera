@@ -171,7 +171,7 @@
   <header>
     <div>
       <h1>📊 Dashboard KPI WhatsApp Blast</h1>
-      <p>BP Tapera &nbsp;|&nbsp; Periode: Januari - Agustus 2026</p>
+      <p>BP Tapera &nbsp;|&nbsp; Periode: Januari - September 2026</p>
     </div>
     <div class="filters" id="filters"></div>
   </header>
@@ -216,37 +216,69 @@
     </div>
   </section>
 
+  <section class="panel">
+    <h2>🏅 Top 10 Campaign Berdasarkan Volume</h2>
+    <div style="overflow-x:auto;">
+    <table id="campaignTable">
+      <thead>
+        <tr><th>Rank</th><th>Campaign</th><th>Total Messages</th><th>Success</th><th>Failed</th><th>Success Rate</th><th>Status</th></tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    </div>
+    <p id="campaignNote" style="font-size:0.78rem;color:var(--muted);margin-top:10px;"></p>
+  </section>
+
   <section>
     <h2 style="font-size:1.05rem;margin-bottom:2px;">💡 Summary Analysis &amp; Insights</h2>
     <div class="insights-grid" id="insightsGrid"></div>
   </section>
 
-  <footer>Sumber data: report_workflow_Database Blasting Tapera Ytd 2026.xlsx (Jan-Jul) &amp; report_workflow_database tapera agustus 2026.xlsx (Agustus) &nbsp;|&nbsp; Dibuat otomatis</footer>
+  <footer>Sumber data: report_workflow_Database_Blasting_Tapera_Ytd_2026.xlsx (sheet "Dashboard", Jan-Sep 2026 &middot; 222.781 baris data mentah) &nbsp;|&nbsp; Diperbarui 2 Oktober 2026</footer>
 </div>
 
 <script>
 // ===== DATA (dari sheet "Dashboard") =====
-const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug"];
-const monthLabel = {Jan:"Januari",Feb:"Februari",Mar:"Maret",Apr:"April",May:"Mei",Jun:"Juni",Jul:"Juli",Aug:"Agustus"};
+const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep"];
+const monthLabel = {Jan:"Januari",Feb:"Februari",Mar:"Maret",Apr:"April",May:"Mei",Jun:"Juni",Jul:"Juli",Aug:"Agustus",Sep:"September"};
+const monthShort = {Jan:"Jan",Feb:"Feb",Mar:"Mar",Apr:"Apr",May:"Mei",Jun:"Jun",Jul:"Jul",Aug:"Agu",Sep:"Sep"};
 const monthly = {
-  Jan:{total:13246, success:9959, failed:3287},
-  Feb:{total:5831,  success:4426, failed:1405},
-  Mar:{total:2685,  success:2088, failed:597},
-  Apr:{total:5812,  success:4472, failed:1340},
-  May:{total:6317,  success:5542, failed:775},
-  Jun:{total:6305,  success:4482, failed:1823},
-  Jul:{total:9192,  success:6107, failed:3085},
-  Aug:{total:2880,  success:2280, failed:600},
+  Jan:{total:13246,  success:9959,  failed:3287},
+  Feb:{total:5831,   success:4426,  failed:1405},
+  Mar:{total:2685,   success:2088,  failed:597},
+  Apr:{total:5812,   success:4472,  failed:1340},
+  May:{total:6317,   success:5542,  failed:775},
+  Jun:{total:6305,   success:4482,  failed:1823},
+  Jul:{total:9192,   success:6107,  failed:3085},
+  Aug:{total:2647,   success:2059,  failed:588},
+  Sep:{total:170746, success:76582, failed:94164},
 };
 const errorBreakdown = [
-  {type:"131026 - Message Undeliverable", count:10761},
-  {type:"131049 - Ecosystem Blocked", count:1288},
-  {type:"130472 - User in Experiment", count:745},
-  {type:"131050 - Marketing Opt-out", count:58},
-  {type:"#100 - Invalid Parameter", count:24},
-  {type:"131053 - Media Upload Error", count:24},
-  {type:"131056 - Pair Rate Limit Hit", count:8},
-  {type:"131000 - Something Went Wrong", count:4},
+  {type:"#132015 - Template Paused (Low Quality)", count:66565},
+  {type:"131026 - Message Undeliverable", count:24509},
+  {type:"#132016 - Template Permanently Disabled", count:8792},
+  {type:"131049 - Ecosystem Blocked", count:4666},
+  {type:"130472 - User in Experiment", count:2303},
+  {type:"131050 - Marketing Opt-out", count:133},
+  {type:"131053 - Media Upload Error", count:53},
+  {type:"#100 - Invalid Parameter", count:25},
+  {type:"#131056 - Pair Rate Limit Hit", count:12},
+  {type:"#131000 - Something Went Wrong", count:5},
+  {type:"#2 - Service Temporarily Unavailable", count:1},
+];
+// Top 10 campaign berdasarkan volume (sheet "Dashboard"), total kampanye: 1.064
+const TOTAL_CAMPAIGNS = 1064;
+const topCampaigns = [
+  {name:"21092026 pmf gojek",          total:11154, success:9144, failed:2010},
+  {name:"04092026 flpp 5",             total:7280,  success:9,    failed:7271},
+  {name:"tapera_10sep2026_flpppns3",   total:7280,  success:3747, failed:3533},
+  {name:"04092026 pnf flpp 2",         total:6676,  success:10,   failed:6666},
+  {name:"04092026 flpp pns 3",         total:6676,  success:11,   failed:6665},
+  {name:"04092026 pns flpp 4",         total:6676,  success:13,   failed:6663},
+  {name:"flpp pns 2 080926",           total:6676,  success:5845, failed:831},
+  {name:"flpp_pns_2_1_3",              total:6676,  success:9,    failed:6667},
+  {name:"tapera_10sep2026_flpppns21",  total:6676,  success:4435, failed:2241},
+  {name:"tapera_13sep2026_flpppns7",   total:6676,  success:5794, failed:882},
 ];
 const TARGET_SUCCESS = 0.80;
 const TARGET_FAILED = 0.20;
@@ -289,14 +321,14 @@ function renderFilters(){
 
 function renderKPIs(){
   const agg = aggregate(currentFilter);
-  const periodLabel = currentFilter==='ALL' ? 'Jan - Agu 2026' : monthLabel[currentFilter]+' 2026';
+  const periodLabel = currentFilter==='ALL' ? `${monthShort[months[0]]} - ${monthShort[months[months.length-1]]} 2026` : monthLabel[currentFilter]+' 2026';
   const cards = [
     {cls:'', label:'📨 Total Messages', value: fmt(agg.total), sub: periodLabel},
     {cls:'success', label:'✅ Success', value: fmt(agg.success), sub: `Rate ${pct(agg.sr)}`},
     {cls:'failed', label:'❌ Failed', value: fmt(agg.failed), sub: `Rate ${pct(agg.fr)}`},
     {cls: agg.sr>=TARGET_SUCCESS?'rate-up':'rate-down', label:'📈 Success Rate', value: pct(agg.sr), sub:`Target ≥80% ${agg.sr>=TARGET_SUCCESS?'✅':'⚠️'}`},
     {cls: agg.fr<=TARGET_FAILED?'rate-up':'rate-down', label:'📉 Failed Rate', value: pct(agg.fr), sub:`Target ≤20% ${agg.fr<=TARGET_FAILED?'✅':'⚠️'}`},
-    {cls:'', label:'📊 Average / Bulan', value: fmt(agg.avg), sub: currentFilter==='ALL'? 'Total 8 bulan' : '1 bulan'},
+    {cls:'', label:'📊 Average / Bulan', value: fmt(agg.avg), sub: currentFilter==='ALL'? `Total ${months.length} bulan` : '1 bulan'},
   ];
   document.getElementById('kpiGrid').innerHTML = cards.map(c=>`
     <div class="kpi ${c.cls}">
@@ -339,6 +371,27 @@ function renderErrorTable(){
         <td><div class="bar-track"><div class="bar-fill" style="width:${(p*100).toFixed(1)}%"></div></div></td>
       </tr>`;
     }).join('');
+}
+
+function renderCampaignTable(){
+  const tbody = document.querySelector('#campaignTable tbody');
+  tbody.innerHTML = topCampaigns.map((c,i)=>{
+    const sr = c.success/c.total;
+    const achieved = sr>=TARGET_SUCCESS;
+    return `<tr>
+      <td><strong>${i+1}</strong></td>
+      <td><strong>${c.name}</strong></td>
+      <td>${fmt(c.total)}</td>
+      <td>${fmt(c.success)}</td>
+      <td>${fmt(c.failed)}</td>
+      <td>${pct(sr)}</td>
+      <td><span class="status-pill ${achieved?'achieved':'below'}">${achieved?'Achieved':'Below Target'}</span></td>
+    </tr>`;
+  }).join('');
+  const topVol = topCampaigns.reduce((a,b)=>a+b.total,0);
+  const all = aggregate('ALL');
+  document.getElementById('campaignNote').textContent =
+    `Top 10 campaign mencakup ${fmt(topVol)} pesan (${pct(topVol/all.total)} dari total ${fmt(all.total)}) dari ${fmt(TOTAL_CAMPAIGNS)} campaign. Data campaign bersifat kumulatif Jan - Sep (tidak terpengaruh filter bulan).`;
 }
 
 function renderTrendChart(){
@@ -388,7 +441,7 @@ function renderTrendChart(){
 function renderErrorChart(){
   const ctx = document.getElementById('errorChart');
   const sorted = errorBreakdown.slice().sort((a,b)=>b.count-a.count);
-  const colors = ['#E53935','#F59E0B','#2563EB','#25D366','#8B5CF6','#EC4899','#0EA5E9','#6B7280'];
+  const colors = ['#E53935','#F59E0B','#2563EB','#25D366','#8B5CF6','#EC4899','#0EA5E9','#6B7280','#14B8A6','#A16207','#94A3B8'];
   if(errorChart) errorChart.destroy();
   errorChart = new Chart(ctx, {
     type:'doughnut',
@@ -411,20 +464,23 @@ function renderInsights(){
   const totalAll = aggregate('ALL');
   const totalFailed = errorBreakdown.reduce((a,b)=>a+b.count,0);
   const mainError = errorBreakdown.slice().sort((a,b)=>b.count-a.count)[0];
+  const templateErr = errorBreakdown.filter(e=>/#13201[56]/.test(e.type)).reduce((a,b)=>a+b.count,0);
+  const achievedMonths = months.filter(m=>monthly[m].sr>=TARGET_SUCCESS);
+  const criticalCamps = topCampaigns.filter(c=>c.success/c.total<0.01);
 
   const cards = [
     {icon:'🏆', cls:'', title:`Best Month: ${monthLabel[best.m]} 2026`,
       text:`Success rate tertinggi ${pct(best.sr)} dengan failed rate terendah ${pct(best.fr)}. Bulan ini menjadi benchmark untuk strategi blast selanjutnya.`},
     {icon:'⚠️', cls:'warn', title:`Worst Month: ${monthLabel[worst.m]} 2026`,
       text:`Success rate terendah ${pct(worst.sr)} dengan failed rate tertinggi ${pct(worst.fr)}. Perlu evaluasi mendalam pada database dan konten blast.`},
-    {icon:'📈', cls:'info', title:'Volume Tercapai',
-      text:`Total volume ${fmt(totalAll.total)} messages (target ≥40.000) terpenuhi. Rata-rata ${fmt(totalAll.avg)} pesan per bulan. Volume tertinggi di ${monthLabel[highestVol.m]} (${fmt(highestVol.total)}).`},
+    {icon:'📈', cls:'info', title: totalAll.total>=40000 ? 'Volume Tercapai' : 'Volume Belum Tercapai',
+      text:`Total volume ${fmt(totalAll.total)} messages (target ≥40.000) ${totalAll.total>=40000?'terpenuhi':'belum terpenuhi'}. Rata-rata ${fmt(totalAll.avg)} pesan per bulan. Volume tertinggi di ${monthLabel[highestVol.m]} (${fmt(highestVol.total)}, ${pct(highestVol.total/totalAll.total)} dari total).`},
     {icon:'🔴', cls:'warn', title:'Root Cause Utama',
-      text:`${pct(mainError.count/totalFailed)} kegagalan disebabkan "${mainError.type}" (${fmt(mainError.count)} kasus). Prioritas perbaikan: validasi nomor aktif & quality kontak.`},
+      text:`${pct(mainError.count/totalFailed)} kegagalan disebabkan "${mainError.type}" (${fmt(mainError.count)} kasus). ${templateErr>0 ? `Total ${fmt(templateErr)} kegagalan (${pct(templateErr/totalFailed)}) terkait kualitas template (#132015/#132016) — prioritas: perbaiki & ganti template.` : 'Prioritas perbaikan: validasi nomor aktif & quality kontak.'}`},
     {icon:'🎯', cls:'amber', title:'KPI Target',
-      text:`Success rate keseluruhan ${pct(totalAll.sr)} masih di bawah target ≥80%. Hanya bulan Mei yang mencapai target.`},
+      text:`Success rate keseluruhan ${pct(totalAll.sr)} ${totalAll.sr>=TARGET_SUCCESS?'sudah mencapai':'masih di bawah'} target ≥80%. ${achievedMonths.length ? `Bulan yang mencapai target: ${achievedMonths.map(m=>monthLabel[m]).join(', ')}.` : 'Belum ada bulan yang mencapai target.'}`},
     {icon:'📉', cls:'info', title:'Rekomendasi',
-      text:`Lakukan cleaning database, verifikasi nomor aktif, optimasi waktu kirim, dan review template untuk mengurangi failed rate — khususnya error "Message Undeliverable".`},
+      text:`${criticalCamps.length ? `${criticalCamps.length} dari Top 10 campaign memiliki success rate &lt;1% — segera review template/konfigurasi campaign tersebut. ` : ''}Lakukan cleaning database, verifikasi nomor aktif, dan monitoring quality rating template untuk menekan error "${mainError.type}" dan "Message Undeliverable".`},
   ];
   document.getElementById('insightsGrid').innerHTML = cards.map(c=>`
     <div class="insight ${c.cls}">
@@ -447,6 +503,11 @@ function exportCSV(){
   errorBreakdown.slice().sort((a,b)=>b.count-a.count).forEach(e=>{
     rows.push([e.type, e.count, pct(e.count/totalFailed)]);
   });
+  rows.push([]);
+  rows.push(["Rank","Campaign","Total Messages","Success","Failed","Success Rate"]);
+  topCampaigns.forEach((c,i)=>{
+    rows.push([i+1, c.name, c.total, c.success, c.failed, pct(c.success/c.total)]);
+  });
   const csv = rows.map(r=>r.join(',')).join('\n');
   const blob = new Blob([csv], {type:'text/csv;charset=utf-8;'});
   const url = URL.createObjectURL(blob);
@@ -461,6 +522,7 @@ function renderAll(){
   renderKPIs();
   renderMonthlyTable();
   renderErrorTable();
+  renderCampaignTable();
   renderTrendChart();
   renderErrorChart();
   renderInsights();
