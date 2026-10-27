@@ -171,7 +171,7 @@
   <header>
     <div>
       <h1>📊 Dashboard KPI WhatsApp Blast</h1>
-      <p>BP Tapera &nbsp;|&nbsp; Periode: Januari - September 2026</p>
+      <p>BP Tapera &nbsp;|&nbsp; Periode: Januari - Oktober 2026 <span style="opacity:.75">(Oktober s.d. 26 Okt)</span></p>
     </div>
     <div class="filters" id="filters"></div>
   </header>
@@ -184,7 +184,7 @@
       <div class="chart-box"><canvas id="trendChart"></canvas></div>
     </div>
     <div class="panel">
-      <h2>⚠️ Error Breakdown (Failed Messages)</h2>
+      <h2>⚠️ Error Breakdown <span id="errScope" style="font-weight:400;color:var(--muted);font-size:.8rem;"></span></h2>
       <div class="chart-box"><canvas id="errorChart"></canvas></div>
     </div>
   </section>
@@ -205,7 +205,7 @@
   </section>
 
   <section class="panel">
-    <h2>🔍 Error Detail Breakdown</h2>
+    <h2>🔍 Error Detail Breakdown <span id="errScope2" style="font-weight:400;color:var(--muted);font-size:.8rem;"></span></h2>
     <div style="overflow-x:auto;">
     <table id="errorTable">
       <thead>
@@ -217,7 +217,7 @@
   </section>
 
   <section class="panel">
-    <h2>🏅 Top 10 Campaign Berdasarkan Volume</h2>
+    <h2>🏅 Top 10 Campaign Berdasarkan Volume <span id="campScope" style="font-weight:400;color:var(--muted);font-size:.8rem;"></span></h2>
     <div style="overflow-x:auto;">
     <table id="campaignTable">
       <thead>
@@ -234,14 +234,14 @@
     <div class="insights-grid" id="insightsGrid"></div>
   </section>
 
-  <footer>Sumber data: report_workflow_Database_Blasting_Tapera_Ytd_2026.xlsx (sheet "Dashboard", Jan-Sep 2026 &middot; 222.781 baris data mentah) &nbsp;|&nbsp; Diperbarui 2 Oktober 2026</footer>
+  <footer>Sumber data: report_workflow_Database_Blasting_Tapera_Ytd_2026.xlsx (sheet "Dashboard", Jan-Sep 2026 &middot; 222.781 baris) + Raw Database Tapera Oktober 2026.xlsx (1-26 Okt 2026 &middot; 25.504 baris) &nbsp;|&nbsp; Diperbarui 27 Oktober 2026</footer>
 </div>
 
 <script>
 // ===== DATA (dari sheet "Dashboard") =====
-const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep"];
-const monthLabel = {Jan:"Januari",Feb:"Februari",Mar:"Maret",Apr:"April",May:"Mei",Jun:"Juni",Jul:"Juli",Aug:"Agustus",Sep:"September"};
-const monthShort = {Jan:"Jan",Feb:"Feb",Mar:"Mar",Apr:"Apr",May:"Mei",Jun:"Jun",Jul:"Jul",Aug:"Agu",Sep:"Sep"};
+const months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct"];
+const monthLabel = {Jan:"Januari",Feb:"Februari",Mar:"Maret",Apr:"April",May:"Mei",Jun:"Juni",Jul:"Juli",Aug:"Agustus",Sep:"September",Oct:"Oktober"};
+const monthShort = {Jan:"Jan",Feb:"Feb",Mar:"Mar",Apr:"Apr",May:"Mei",Jun:"Jun",Jul:"Jul",Aug:"Agu",Sep:"Sep",Oct:"Okt"};
 const monthly = {
   Jan:{total:13246,  success:9959,  failed:3287},
   Feb:{total:5831,   success:4426,  failed:1405},
@@ -252,22 +252,53 @@ const monthly = {
   Jul:{total:9192,   success:6107,  failed:3085},
   Aug:{total:2647,   success:2059,  failed:588},
   Sep:{total:170746, success:76582, failed:94164},
+  Oct:{total:25504,  success:19405, failed:6099},   // Raw Database Tapera Oktober 2026 (1-26 Okt)
 };
+// Kumulatif Jan - Okt 2026 (Jan-Sep dari sheet "Dashboard" + Okt dari raw data Oktober)
 const errorBreakdown = [
   {type:"#132015 - Template Paused (Low Quality)", count:66565},
-  {type:"131026 - Message Undeliverable", count:24509},
+  {type:"131026 - Message Undeliverable", count:29170},
   {type:"#132016 - Template Permanently Disabled", count:8792},
-  {type:"131049 - Ecosystem Blocked", count:4666},
-  {type:"130472 - User in Experiment", count:2303},
-  {type:"131050 - Marketing Opt-out", count:133},
+  {type:"131049 - Ecosystem Blocked", count:5656},
+  {type:"130472 - User in Experiment", count:2689},
+  {type:"131050 - Marketing Opt-out", count:194},
   {type:"131053 - Media Upload Error", count:53},
   {type:"#100 - Invalid Parameter", count:25},
   {type:"#131056 - Pair Rate Limit Hit", count:12},
   {type:"#131000 - Something Went Wrong", count:5},
   {type:"#2 - Service Temporarily Unavailable", count:1},
+  {type:"#131009 - Parameter Value Not Valid", count:1},
 ];
-// Top 10 campaign berdasarkan volume (sheet "Dashboard"), total kampanye: 1.064
-const TOTAL_CAMPAIGNS = 1064;
+// Error khusus Oktober 2026 (1-26 Okt) — dipakai saat filter "Oct" aktif
+const errorBreakdownByMonth = {
+  Oct:[
+    {type:"131026 - Message Undeliverable", count:4661},
+    {type:"131049 - Ecosystem Blocked", count:990},
+    {type:"130472 - User in Experiment", count:386},
+    {type:"131050 - Marketing Opt-out", count:61},
+    {type:"#131009 - Parameter Value Not Valid", count:1},
+  ]
+};
+function getErrors(){ return errorBreakdownByMonth[currentFilter] || errorBreakdown; }
+function errScopeLabel(){ return errorBreakdownByMonth[currentFilter] ? `(${monthLabel[currentFilter]} 2026)` : '(Kumulatif Jan - Okt 2026)'; }
+// Top 10 campaign berdasarkan volume Jan-Okt. Campaign Oktober (maks 6.574 pesan) tidak masuk Top 10 kumulatif.
+// Total kampanye: 1.064 (Jan-Sep) + 109 (Okt) = 1.173
+const TOTAL_CAMPAIGNS = 1173;
+const TOTAL_CAMPAIGNS_BY_MONTH = {Oct:109};
+const topCampaignsByMonth = {
+  Oct:[
+    {name:"06102026 gojek",      total:6574, success:5500, failed:1074},
+    {name:"07102026 gojek pmf",  total:6574, success:5520, failed:1054},
+    {name:"07102026 monev",      total:2940, success:1851, failed:1089},
+    {name:"26102026 gojek",      total:1661, success:1407, failed:254},
+    {name:"26102026 gojek pmf",  total:1661, success:1346, failed:315},
+    {name:"21102026 monev",      total:1158, success:819,  failed:339},
+    {name:"26102026 pmf",        total:1115, success:373,  failed:742},
+    {name:"26102026 pmf2",       total:604,  success:222,  failed:382},
+    {name:"22102026 monev",      total:579,  success:416,  failed:163},
+    {name:"26102026 pmf1",       total:510,  success:225,  failed:285},
+  ]
+};
 const topCampaigns = [
   {name:"21092026 pmf gojek",          total:11154, success:9144, failed:2010},
   {name:"04092026 flpp 5",             total:7280,  success:9,    failed:7271},
@@ -358,9 +389,12 @@ function renderMonthlyTable(){
 }
 
 function renderErrorTable(){
-  const totalFailed = errorBreakdown.reduce((a,b)=>a+b.count,0);
+  const errs = getErrors();
+  document.getElementById('errScope').textContent = errScopeLabel();
+  document.getElementById('errScope2').textContent = errScopeLabel();
+  const totalFailed = errs.reduce((a,b)=>a+b.count,0);
   const tbody = document.querySelector('#errorTable tbody');
-  tbody.innerHTML = errorBreakdown
+  tbody.innerHTML = errs
     .slice().sort((a,b)=>b.count-a.count)
     .map(e=>{
       const p = e.count/totalFailed;
@@ -374,8 +408,11 @@ function renderErrorTable(){
 }
 
 function renderCampaignTable(){
+  const monthCamps = topCampaignsByMonth[currentFilter];
+  const camps = monthCamps || topCampaigns;
+  document.getElementById('campScope').textContent = monthCamps ? `(${monthLabel[currentFilter]} 2026)` : '(Kumulatif Jan - Okt 2026)';
   const tbody = document.querySelector('#campaignTable tbody');
-  tbody.innerHTML = topCampaigns.map((c,i)=>{
+  tbody.innerHTML = camps.map((c,i)=>{
     const sr = c.success/c.total;
     const achieved = sr>=TARGET_SUCCESS;
     return `<tr>
@@ -388,10 +425,16 @@ function renderCampaignTable(){
       <td><span class="status-pill ${achieved?'achieved':'below'}">${achieved?'Achieved':'Below Target'}</span></td>
     </tr>`;
   }).join('');
-  const topVol = topCampaigns.reduce((a,b)=>a+b.total,0);
-  const all = aggregate('ALL');
-  document.getElementById('campaignNote').textContent =
-    `Top 10 campaign mencakup ${fmt(topVol)} pesan (${pct(topVol/all.total)} dari total ${fmt(all.total)}) dari ${fmt(TOTAL_CAMPAIGNS)} campaign. Data campaign bersifat kumulatif Jan - Sep (tidak terpengaruh filter bulan).`;
+  const topVol = camps.reduce((a,b)=>a+b.total,0);
+  if(monthCamps){
+    const m = aggregate(currentFilter);
+    document.getElementById('campaignNote').textContent =
+      `Top 10 campaign ${monthLabel[currentFilter]} mencakup ${fmt(topVol)} pesan (${pct(topVol/m.total)} dari total ${fmt(m.total)}) dari ${fmt(TOTAL_CAMPAIGNS_BY_MONTH[currentFilter])} campaign bulan ini.`;
+  } else {
+    const all = aggregate('ALL');
+    document.getElementById('campaignNote').textContent =
+      `Top 10 campaign mencakup ${fmt(topVol)} pesan (${pct(topVol/all.total)} dari total ${fmt(all.total)}) dari ${fmt(TOTAL_CAMPAIGNS)} campaign. Data kumulatif Jan - Okt; pilih filter "Oct" untuk Top 10 campaign Oktober. Rincian per campaign untuk Jan - Sep tidak tersedia per bulan.`;
+  }
 }
 
 function renderTrendChart(){
@@ -440,8 +483,8 @@ function renderTrendChart(){
 
 function renderErrorChart(){
   const ctx = document.getElementById('errorChart');
-  const sorted = errorBreakdown.slice().sort((a,b)=>b.count-a.count);
-  const colors = ['#E53935','#F59E0B','#2563EB','#25D366','#8B5CF6','#EC4899','#0EA5E9','#6B7280','#14B8A6','#A16207','#94A3B8'];
+  const sorted = getErrors().slice().sort((a,b)=>b.count-a.count);
+  const colors = ['#E53935','#F59E0B','#2563EB','#25D366','#8B5CF6','#EC4899','#0EA5E9','#6B7280','#14B8A6','#A16207','#94A3B8','#64748B'];
   if(errorChart) errorChart.destroy();
   errorChart = new Chart(ctx, {
     type:'doughnut',
@@ -482,8 +525,11 @@ function renderInsights(){
     {icon:'📉', cls:'info', title:'Rekomendasi',
       text:`${criticalCamps.length ? `${criticalCamps.length} dari Top 10 campaign memiliki success rate &lt;1% — segera review template/konfigurasi campaign tersebut. ` : ''}Lakukan cleaning database, verifikasi nomor aktif, dan monitoring quality rating template untuk menekan error "${mainError.type}" dan "Message Undeliverable".`},
   ];
+  const o = monthly.Oct, sp = monthly.Sep;
+  cards.push({icon:'🆕', cls: o.sr>=TARGET_SUCCESS?'':'amber', wide:true, title:'Update Oktober 2026 (1 - 26 Okt)',
+    text:`Volume ${fmt(o.total)} pesan dari 109 campaign dengan success rate ${pct(o.sr)} (failed ${pct(o.fr)}) — naik ${((o.sr-sp.sr)*100).toFixed(1)} poin dibanding September (${pct(sp.sr)}), namun masih ${((TARGET_SUCCESS-o.sr)*100).toFixed(1)} poin di bawah target 80%. Error template #132015/#132016 tidak muncul lagi di Oktober; kegagalan didominasi "131026 - Message Undeliverable" (${fmt(4661)} kasus, ${pct(4661/o.failed)} dari failed Oktober) sehingga fokus beralih ke validasi nomor aktif. Campaign "pmf" tanggal 26 Okt perlu perhatian (success rate 33-45%).`});
   document.getElementById('insightsGrid').innerHTML = cards.map(c=>`
-    <div class="insight ${c.cls}">
+    <div class="insight ${c.cls}" ${c.wide?'style="grid-column:1/-1;"':''}>
       <div class="icon">${c.icon}</div>
       <h3>${c.title}</h3>
       <p>${c.text}</p>
